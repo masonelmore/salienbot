@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     logger = logging.getLogger('')
     if DEBUG:
-        file_handler = logging.FileHandler('debug.log')
+        file_handler = logging.FileHandler('debug.log', encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         file_formatter = logging.Formatter(
             '%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
