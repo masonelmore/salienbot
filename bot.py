@@ -131,7 +131,7 @@ class Bot():
 
     def play_boss_zone(self):
         use_heal = 0
-        damage_to_boss = 1
+        damage_to_boss = 0
         damage_taken = 0
 
         report_damage_wait = 5
@@ -161,6 +161,9 @@ class Bot():
                 time.sleep(report_damage_wait)
                 continue
 
+            # Boss is ready to fight.  Start doing damage.
+            damage_to_boss = 1
+
             # Cast heal if it's off cooldown and the players need healing.
             if time_heal_used + healing_cooldown > datetime.now():
                 display.debug('[BOSS] healing off cooldown.  checking is players need heals.')
@@ -189,7 +192,7 @@ class Bot():
                 name = player.get('name')
                 hp = player.get('hp')
                 max_hp = player.get('max_hp')
-                starting_score = player.get('score_on_join')
+                starting_score = int(player.get('score_on_join', 0))
                 starting_level = player.get('level_on_join')
                 xp_earned = player.get('xp_earned')
                 new_level = player.get('new_level')

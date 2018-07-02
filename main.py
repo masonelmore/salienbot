@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 3:
         token = sys.argv[1]
-        account_id = sys.argv[1]
+        account_id = int(sys.argv[2])
 
     client = Client(token)
     bot = Bot(client, account_id)
