@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 # TODO: use logging for debug messages
 # TODO: move temporary display stuff from here to display.  e.g. showing boss info
 
+import logging
 import time
 from datetime import datetime, timedelta
 
@@ -23,6 +26,8 @@ class Bot():
         self.zone = None
         self.player = None
 
+        self.logger = logging.getLogger(__name__)
+
     def run(self):
         display.welcome()
 
@@ -36,35 +41,33 @@ class Bot():
             self.planet = self.best_planet(planets)
             self.zone = self.planet.best_zone()
 
-            # Join the best planet if we aren't already there.
+            # Join the best planet if we need to.
             if self.player.active_planet != self.planet.id:
-                # Leave our current zone if we've already joined another before
-                # leaving the planet.
+                # Leave the current Zone if we've already joined one.
                 if self.player.active_zone_game is not None:
-                    display.debug(f'Leaving zone {self.player.active_zone_game} to join another planet')
+                    self.logger.debug(f'Leaving Zone {self.player.active_zone} ({self.player.active_zone_game}) before leaving Planet {self.player.active_planet}')
                     self._call_api(self.api.leave_game, self.player.active_zone_game)
-                # Leave our current planet if we've already joined another.
+                # Leave the current Planet if we've already joined one.
                 if self.player.active_planet is not None:
-                    display.debug(f'Leaving planet {self.player.active_planet} to join another planet')
+                    self.logger.debug(f'Leaving Planet {self.player.active_planet} before joining Planet {self.planet.id}')
                     self._call_api(self.api.leave_game, self.player.active_planet)
-                display.debug(f'Joining planet {self.planet.id}')
+                self.logger.debug(f'Joining planet {self.planet.id}')
                 self._call_api(self.api.join_planet, self.planet.id)
 
-            # Join the best zone if we aren't already there.  Need to check if
-            # we changed planets with the second half of the `if` just in case
-            # we want to join the same zone position on another planet.
+            # Join the best zone if we aren't already there.
             if self.player.active_zone_game != self.zone.game_id:
-                # Leave our current zone if we've already joined another.
+                # Leave the current Zone if we've already joined one.
                 if self.player.active_zone_game is not None:
-                    display.debug(f'Leaving zone {self.player.active_zone} to join another on the same planet')
+                    self.logger.debug(f'Leaving Zone {self.player.active_zone} ({self.player.active_zone_game}) on Planet {self.player.active_planet}')
                     self._call_api(self.api.leave_game, self.player.active_zone_game)
                 if self.zone.boss_active:
-                    display.debug(f'Joining boss zone {self.zone.id} on planet {self.planet.id}')
-                    resp = self._call_api(self.api.join_boss_zone, self.zone.id)
-                    display.debug(resp)
+                    self.logger.debug(f'Joining boss Zone {self.zone.id} on Planet {self.planet.id}')
+                    self._call_api(self.api.join_boss_zone, self.zone.id)
                 else:
-                    display.debug(f'Joining zone {self.zone.id} on planet {self.planet.id}')
+                    self.logger.debug(f'Joining Zone {self.zone.id} on Planet {self.planet.id}')
                     self._call_api(self.api.join_zone, self.zone.id)
+
+            display.join_zone_status(self.player, self.planet, self.zone)
 
             if self.zone.boss_active:
                 self.play_boss_zone()
@@ -80,8 +83,8 @@ class Bot():
         while attempts < max_attempts:
             json, eresult = func(*args, **kwargs)
             if eresult != '1':
-                display.error(f'Calling {func.__name__}() gave eresult: {eresult} - {json}')
-                display.info(f'Retrying API call in {fail_wait} seconds...')
+                self.logger.debug(f'Calling {func.__name__}() gave eresult: {eresult} - {json}')
+                self.logger.debug(f'Retrying API call in {fail_wait} seconds...')
                 attempts += 1
                 time.sleep(fail_wait)
                 fail_wait *= 2
@@ -122,14 +125,15 @@ class Bot():
         return best_planet
 
     def play_zone(self):
-        display.info(f'Fighting on planet {self.planet.id} in zone {self.zone.id} - difficulty: {self.zone.difficulty_name()}')
         score = self.zone.score()
         report_damage_wait = 110
-        display.debug(f'Waiting {report_damage_wait} seconds to report a score of {score}')
+        self.logger.debug(f'Waiting {report_damage_wait} seconds to report a score of {score}')
         time.sleep(report_damage_wait)
-        self._call_api(self.api.report_score, score)
+        resp = self._call_api(self.api.report_score, score)
+        display.zone_finished(resp)
 
     def play_boss_zone(self):
+        display.message('Starting boss battle!')
         use_heal = 0
         damage_to_boss = 0
         damage_taken = 0
@@ -139,10 +143,11 @@ class Bot():
         time_heal_used = datetime.now() - healing_cooldown
 
         while True:
+            self.logger.debug(f'Reporting damage_to_boss {damage_to_boss} - use_heal {use_heal} - damage_taken {damage_taken}')
             resp = self._call_api(self.api.report_boss_damage, use_heal, damage_to_boss, damage_taken)
 
             if resp.get('game_over', False):
-                display.debug('[BOSS] game over.  leaving game...')
+                display.message('Game Over! Leaving boss game...')
                 break
 
             if use_heal == 1:
@@ -151,13 +156,13 @@ class Bot():
 
             waiting_for_players = resp.get('waiting_for_players')
             if waiting_for_players:
-                display.debug('[BOSS] waiting for players...')
+                self.logger.debug(f'Waiting for players, sleeping for {report_damage_wait} seconds...')
                 time.sleep(report_damage_wait)
                 continue
 
             boss_status = resp.get('boss_status', None)
             if boss_status is None:
-                display.debug('[BOSS] no boss_status, waiting...')
+                self.logger.debug(f'Boss status empty, sleeping for {report_damage_wait} seconds...')
                 time.sleep(report_damage_wait)
                 continue
 
@@ -166,7 +171,7 @@ class Bot():
 
             # Cast heal if it's off cooldown and the players need healing.
             if time_heal_used + healing_cooldown > datetime.now():
-                display.debug('[BOSS] healing off cooldown.  checking is players need heals.')
+                self.logger.debug('Heal cooldown is up.  Checking if a heal is necessary.')
                 boss_players = boss_status.get('boss_players')
                 total_hp = 0
                 total_max_hp = 0
@@ -177,30 +182,13 @@ class Bot():
                     total_max_hp += max_hp
 
                 hp_percent = float(total_hp)/total_max_hp
-                display.debug(f'[BOSS] player health: {hp_percent:5.2f}%')
+                self.logger.debug(f'Approximate player health: {hp_percent:5.2f}%')
                 if hp_percent < 0.75:
+                    self.logger.debug('Enable heal on next damage report')
                     use_heal = 1
 
-            # Show player stats if they provided their accountid
-            if self.account_id > -1:
-                player = None
-                # TODO: possibly looping over the players again if we checked for heals above
-                for p in boss_status.get('boss_players'):
-                    if p.get('accountid') == self.account_id:
-                        player = p
-                        break
-                name = player.get('name')
-                hp = player.get('hp')
-                max_hp = player.get('max_hp')
-                starting_score = int(player.get('score_on_join', 0))
-                starting_level = player.get('level_on_join')
-                xp_earned = player.get('xp_earned')
-                new_level = player.get('new_level')
-                display.info(f'{name} Starting score: {starting_score} ({starting_level}) - Current score: {starting_score+xp_earned} +{xp_earned} ({new_level})')
+            display.boss_progress(boss_status, self.account_id)
 
-            boss_hp = boss_status.get('boss_hp')
-            boss_max_hp = boss_status.get('boss_max_hp')
-            display.info(f'Boss HP: {boss_hp} / {boss_max_hp}')
             time.sleep(report_damage_wait)
 
 
@@ -319,27 +307,29 @@ class Zone():
 
 
 class Player():
-    def __init__(self, level, score, next_level_score, active_planet, active_zone, active_zone_game):
+    def __init__(self, level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game):
         self.level = level
         self.score = score
         self.next_level_score = next_level_score
         self.active_planet = active_planet
+        self.time_on_planet = time_on_planet
         self.active_zone = active_zone
         self.active_zone_game = active_zone_game
 
     @classmethod
     def from_json(cls, player_json):
         level = player_json.get('level')
-        score = player_json.get('score')
-        # TODO: next_level_score is sometimes not there?  needs proper fix
-        next_level_score = player_json.get('next_level_score', 1000000000)
+        score = int(player_json.get('score', 0))
+        # next_level_score disappears at max level.  Setting it to the current
+        # score should be fine.
+        next_level_score = int(player_json.get('next_level_score', score))
         active_planet = player_json.get('active_planet', None)
+        time_on_planet = player_json.get('time_on_planet', 0)
         active_zone = player_json.get('active_zone_position', None)
         active_zone_game = player_json.get('active_zone_game', None)
-        # active_boss_game replaces active_zone_game, so we must check for that
-        # after.
+        # active_boss_game replaces active_zone_game
         if active_zone_game is None:
             active_zone_game = player_json.get('active_boss_game', None)
 
-        player = cls(level, score, next_level_score, active_planet, active_zone, active_zone_game)
+        player = cls(level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game)
         return player

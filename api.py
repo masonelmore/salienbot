@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
+
 import json
 import logging
 import time
 from requests import Request, Session
 from requests.exceptions import HTTPError
 
-import display
 from version import __version__ as version
 
 
@@ -31,9 +32,6 @@ class Client():
         self.session.headers.update({'User-Agent': _USER_AGENT})
 
         self.logger = logging.getLogger(__name__)
-        fh = logging.FileHandler('api.log')
-        fh.setLevel(logging.DEBUG)
-        self.logger.addHandler(fh)
 
     @staticmethod
     def _build_url(path):
@@ -52,7 +50,6 @@ class Client():
 
     def _execute_request(self, request):
         prepped = self.session.prepare_request(request)
-        self.logger.debug(f'{prepped.method} {prepped.url}')
 
         attempts = 0
         max_attempts = 5
@@ -60,13 +57,11 @@ class Client():
 
         while attempts < max_attempts:
             resp = self.session.send(prepped)
-            self.logger.debug(f'{resp.status_code}\n{resp.headers}\n{resp.content}')
             try:
                 resp.raise_for_status()
                 break
-            except HTTPError as err:
-                display.error(str(err))
-                display.info(f'Retrying request in  {fail_wait} seconds...')
+            except HTTPError:
+                self.logger.debug(f'Retrying request in {fail_wait} seconds...')
                 attempts += 1
                 time.sleep(fail_wait)
                 fail_wait *= 2
