@@ -167,6 +167,7 @@ class Bot():
 
             display.boss_progress(resp, self.account_id)
 
+            should_heal = False
             team = boss_status.get('boss_players')
             total_hp_percent = 0.0
             for player in team:
@@ -179,6 +180,12 @@ class Bot():
                         display.message('!!! Game Over. You are dead! :( !!!')
                         return
 
+                # Checking if should_heal is false prevents it from being
+                # disabled again if a player before the last in the list needs
+                # healing.
+                if not should_heal:
+                    should_heal = max_hp - hp > 10000
+
             avg_hp_percent = total_hp_percent / len(team)
             remaining_cooldown = next_heal - datetime.now()
             # Need to check if the remaining cooldown is less than 0 seconds,
@@ -189,8 +196,7 @@ class Bot():
                 seconds = remaining_cooldown.seconds
             display.message(f'Average player health: {avg_hp_percent*100:.2f}% - Heal cooldown: {seconds} seconds')
 
-            # Cast heal if it's off cooldown and the players need healing.
-            if next_heal <= datetime.now() + timedelta(seconds=report_damage_wait):
+            if should_heal and next_heal <= datetime.now() + timedelta(seconds=report_damage_wait):
                 use_heal = 1
                 display.message('>>> Using Heal <<<')
 
