@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from version import __version__ as version
 
@@ -66,20 +66,33 @@ def zone_finished(score_json):
     logger.info(msg)
 
 
-def boss_progress(status, account_id):
+def boss_progress(data, account_id):
+    status = data.get('boss_status')
     players = status.get('boss_players')
 
     # Put our player at the bottom of the list.
     players.sort(key=lambda p: p.get('accountid') == account_id)
 
-    logger.info('Player Name           HP               XP Earned')
+    logger.info('Player Name           HP                XP Earned  Heal Cooldown')
     for player in players:
         name = player.get('name')
         hp = player.get('hp')
         max_hp = player.get('max_hp')
         xp_earned = player.get('xp_earned')
-        logger.info(f'{name:20}  {hp:6} / {max_hp:6}  {xp_earned:10,d}')
+        # The default timestamp is an arbitrary date before the sale started.
+        last_heal = datetime.fromtimestamp(player.get('time_last_heal', 1529470800))
+        next_heal = last_heal + timedelta(seconds=120)
+        # TODO: some duplicated logic here from Bot.play_boss_zone().  is it
+        # worth refactoring?  probably not.
+        remaining_cooldown = next_heal - datetime.now()
+        if remaining_cooldown < timedelta(0):
+            seconds = 0
+        else:
+            seconds = remaining_cooldown.seconds
+        logger.info(f'{name:20}  {hp:6} / {max_hp:6}  {xp_earned:10,d}  {seconds:13}')
 
     boss_hp = status.get('boss_hp')
     boss_max_hp = status.get('boss_max_hp')
-    logger.info(f'Boss HP: {boss_hp:,d} / {boss_max_hp:,d}')
+    lasers = data.get('num_laser_uses', 0)
+    heals = data.get('num_team_heals', 0)
+    logger.info(f'Boss HP: {boss_hp:,d} / {boss_max_hp:,d} - Lasers: {lasers} - Heals: {heals}')

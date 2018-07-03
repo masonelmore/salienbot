@@ -136,7 +136,7 @@ class Bot():
 
         report_damage_wait = 5
         healing_cooldown = timedelta(seconds=120)
-        time_heal_used = datetime.now() - healing_cooldown
+        next_heal = datetime.now()
 
         while True:
             self.logger.debug(f'Reporting damage_to_boss {damage_to_boss} - use_heal {use_heal} - damage_taken {damage_taken}')
@@ -148,7 +148,7 @@ class Bot():
 
             if use_heal == 1:
                 use_heal = 0
-                time_heal_used = datetime.now()
+                next_heal = datetime.now() + healing_cooldown
 
             waiting_for_players = resp.get('waiting_for_players')
             if waiting_for_players:
@@ -165,7 +165,7 @@ class Bot():
             # Boss is ready to fight.  Start doing damage.
             damage_to_boss = 1
 
-            display.boss_progress(boss_status, self.account_id)
+            display.boss_progress(resp, self.account_id)
 
             team = boss_status.get('boss_players')
             total_hp_percent = 0.0
@@ -180,10 +180,17 @@ class Bot():
                         return
 
             avg_hp_percent = total_hp_percent / len(team)
-            display.message(f'Average player health: {avg_hp_percent*100:.2f}%')
+            remaining_cooldown = next_heal - datetime.now()
+            # Need to check if the remaining cooldown is less than 0 seconds,
+            # otherwise it will show something like 86000 seconds remaining.
+            if remaining_cooldown < timedelta(0):
+                seconds = 0
+            else:
+                seconds = remaining_cooldown.seconds
+            display.message(f'Average player health: {avg_hp_percent*100:.2f}% - Heal cooldown: {seconds} seconds')
 
             # Cast heal if it's off cooldown and the players need healing.
-            if time_heal_used + healing_cooldown < datetime.now():
+            if next_heal <= datetime.now() + timedelta(seconds=report_damage_wait):
                 use_heal = 1
                 display.message('>>> Using Heal <<<')
 
