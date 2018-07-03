@@ -170,7 +170,7 @@ class Bot():
             damage_to_boss = 1
 
             # Cast heal if it's off cooldown and the players need healing.
-            if time_heal_used + healing_cooldown > datetime.now():
+            if time_heal_used + healing_cooldown < datetime.now():
                 self.logger.debug('Heal cooldown is up.  Checking if a heal is necessary.')
                 boss_players = boss_status.get('boss_players')
                 total_hp = 0
