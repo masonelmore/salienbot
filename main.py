@@ -56,5 +56,7 @@ if __name__ == '__main__':
             print('exiting...')
             sys.exit(0)
         except Exception:
-            logger.error('Something went horribly wrong.  Restarting bot...')
+            logger.error('! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * !')
+            logger.error('! Something went horribly wrong.  Restarting bot... !')
+            logger.error('! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * ! * !')
             logger.debug('Unhandled exception:',  exc_info=1)
