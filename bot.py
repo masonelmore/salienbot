@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-
-# TODO: use logging for debug messages
-# TODO: move temporary display stuff from here to display.  e.g. showing boss info
-
 import logging
 import time
 from datetime import datetime, timedelta
