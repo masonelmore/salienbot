@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from requests import Request, Session
-from requests.exceptions import HTTPError
+from requests.exceptions import ConnectionError, HTTPError
 
 from version import __version__ as version
 
@@ -52,19 +52,22 @@ class Client():
         prepped = self.session.prepare_request(request)
 
         attempts = 0
-        max_attempts = 5
-        fail_wait = 1
+        max_attempts = 10
+        fail_wait = 5
 
         while attempts < max_attempts:
-            resp = self.session.send(prepped)
             try:
+                resp = self.session.send(prepped)
                 resp.raise_for_status()
                 break
             except HTTPError:
-                self.logger.debug(f'Retrying request in {fail_wait} seconds...')
-                attempts += 1
-                time.sleep(fail_wait)
-                fail_wait *= 2
+                self.logger.debug(f'HTTPError - Retrying request in {fail_wait} seconds...')
+            except ConnectionError:
+                self.logger.debug(f'ConnectionError - Retrying request in {fail_wait} seconds...')
+
+            attempts += 1
+            time.sleep(fail_wait)
+            fail_wait += 5
 
         if attempts == max_attempts:
             raise Exception('Unable to recover from failed request attempts')
