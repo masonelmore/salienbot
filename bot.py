@@ -169,25 +169,21 @@ class Bot():
             # Boss is ready to fight.  Start doing damage.
             damage_to_boss = 1
 
-            # Cast heal if it's off cooldown and the players need healing.
-            if time_heal_used + healing_cooldown < datetime.now():
-                self.logger.debug('Heal cooldown is up.  Checking if a heal is necessary.')
-                boss_players = boss_status.get('boss_players')
-                total_hp = 0
-                total_max_hp = 0
-                for player in boss_players:
-                    hp = player.get('hp')
-                    max_hp = player.get('max_hp')
-                    total_hp += hp
-                    total_max_hp += max_hp
-
-                hp_percent = float(total_hp)/total_max_hp
-                self.logger.debug(f'Approximate player health: {hp_percent:5.2f}%')
-                if hp_percent < 0.75:
-                    self.logger.debug('Enable heal on next damage report')
-                    use_heal = 1
-
             display.boss_progress(boss_status, self.account_id)
+
+            team = boss_status.get('boss_players')
+            total_hp_percent = 0.0
+            for player in team:
+                hp = player.get('hp')
+                max_hp = player.get('max_hp')
+                total_hp_percent += hp / max_hp
+            avg_hp_percent = total_hp_percent / len(team)
+            display.message(f'Average player health: {avg_hp_percent*100:.2f}%')
+
+            # Cast heal if it's off cooldown and the players need healing.
+            if time_heal_used + healing_cooldown < datetime.now() and avg_hp_percent < 0.75:
+                use_heal = 1
+                display.message('>>> Using Heal <<<')
 
             time.sleep(report_damage_wait)
 
