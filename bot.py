@@ -187,7 +187,7 @@ class Bot():
             display.message(f'Average player health: {avg_hp_percent*100:.2f}%')
 
             # Cast heal if it's off cooldown and the players need healing.
-            if time_heal_used + healing_cooldown < datetime.now() and avg_hp_percent < 0.75:
+            if time_heal_used + healing_cooldown < datetime.now() and avg_hp_percent < 0.9:
                 use_heal = 1
                 display.message('>>> Using Heal <<<')
 
