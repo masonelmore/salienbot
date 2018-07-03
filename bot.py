@@ -196,6 +196,10 @@ class Bot():
 
             time.sleep(report_damage_wait)
 
+        # Wait a bit before leaving.  Some times we check the planets again too
+        # fast and try to join a boss room that is closed and we crash.
+        time.sleep(5)
+
 
 class Planet():
     def __init__(self, planet_id, active, captured, progress, boss_position, zones):
