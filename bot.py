@@ -33,6 +33,7 @@ class Bot():
 
         while True:
             player_json = self._call_api(self.api.get_player_info)
+            self.logger.debug(player_json)
             self.player = Player.from_json(player_json)
             display.player_info(self.player)
 
