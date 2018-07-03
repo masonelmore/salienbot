@@ -177,6 +177,12 @@ class Bot():
                 hp = player.get('hp')
                 max_hp = player.get('max_hp')
                 total_hp_percent += hp / max_hp
+
+                if player.get('accountid') == self.account_id:
+                    if hp <= 0:
+                        display.message('!!! Game Over. You are dead! :( !!!')
+                        return
+
             avg_hp_percent = total_hp_percent / len(team)
             display.message(f'Average player health: {avg_hp_percent*100:.2f}%')
 
