@@ -71,9 +71,8 @@ def zone_finished(score_json):
 def boss_progress(status, account_id):
     players = status.get('boss_players')
 
-    # Put our player at the bottom of the list if an account_id was provided.
-    if account_id > -1:
-        players.sort(key=lambda p: p.get('accountid') == account_id)
+    # Put our player at the bottom of the list.
+    players.sort(key=lambda p: p.get('accountid') == account_id)
 
     logger.info('Player Name           HP               XP Earned')
     for player in players:

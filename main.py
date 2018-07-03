@@ -10,19 +10,13 @@ from bot import Bot
 DEBUG = 'SALIENBOT_DEBUG' in os.environ
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('usage: python main.py <token> [accountid]')
-        print('You can get your token from https://steamcommunity.com/saliengame/gettoken')
-        print('The optional accountid (steamid32) is used to show your stats during a boss battle.')
+    if len(sys.argv) < 3:
+        print('usage: python main.py token steamid')
         sys.exit(-1)
 
-    if len(sys.argv) == 2:
-        token = sys.argv[1]
-        account_id = -1
-
-    if len(sys.argv) == 3:
-        token = sys.argv[1]
-        account_id = int(sys.argv[2])
+    token = sys.argv[1]
+    steamid64 = int(sys.argv[2])
+    steamid32 = steamid64 & 0xFFFFFFFF
 
     logger = logging.getLogger('')
     if DEBUG:
@@ -48,7 +42,7 @@ if __name__ == '__main__':
     logger.addHandler(console_handler)
 
     client = Client(token)
-    bot = Bot(client, account_id)
+    bot = Bot(client, steamid32)
     while True:
         try:
             bot.run()
