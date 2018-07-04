@@ -62,6 +62,12 @@ class Bot():
                 else:
                     self.logger.debug(f'Joining Zone {self.zone.id} on Planet {self.planet.id}')
                     self._call_api(self.api.join_zone, self.zone.id)
+                    # NOTE:  This is a pretty dirty hack, but it needs to happen
+                    # to make sure we don't report a zone score too early.  The
+                    # time in zone is important when we choose the same zone
+                    # after restarting the bot, resulting in being out of sync
+                    # with the server.
+                    self.player.time_in_zone = 0
 
             display.join_zone_status(self.player, self.planet, self.zone)
 
@@ -122,7 +128,7 @@ class Bot():
 
     def play_zone(self):
         score = self.zone.score()
-        report_damage_wait = 110
+        report_damage_wait = 110 - self.player.time_in_zone
         self.logger.debug(f'Waiting {report_damage_wait} seconds to report a score of {score}')
         time.sleep(report_damage_wait)
         resp = self._call_api(self.api.report_score, score)
@@ -326,7 +332,7 @@ class Zone():
 
 
 class Player():
-    def __init__(self, level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game):
+    def __init__(self, level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game, time_in_zone):
         self.level = level
         self.score = score
         self.next_level_score = next_level_score
@@ -334,6 +340,7 @@ class Player():
         self.time_on_planet = time_on_planet
         self.active_zone = active_zone
         self.active_zone_game = active_zone_game
+        self.time_in_zone = time_in_zone
 
     @classmethod
     def from_json(cls, player_json):
@@ -349,6 +356,7 @@ class Player():
         # active_boss_game replaces active_zone_game
         if active_zone_game is None:
             active_zone_game = player_json.get('active_boss_game', None)
+        time_in_zone = player_json.get('time_in_zone', 0)
 
-        player = cls(level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game)
+        player = cls(level, score, next_level_score, active_planet, time_on_planet, active_zone, active_zone_game, time_in_zone)
         return player
