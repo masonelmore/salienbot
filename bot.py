@@ -151,10 +151,6 @@ class Bot():
             self.logger.debug(f'Reporting damage_to_boss {damage_to_boss} - use_heal {use_heal} - damage_taken {damage_taken}')
             resp = self._call_api(self.api.report_boss_damage, use_heal, damage_to_boss, damage_taken)
 
-            if resp.get('game_over', False):
-                display.message('Game Over! Leaving boss game...')
-                break
-
             if use_heal == 1:
                 use_heal = 0
                 next_heal = datetime.now() + healing_cooldown
@@ -208,6 +204,10 @@ class Bot():
             if should_heal and next_heal <= datetime.now() + timedelta(seconds=report_damage_wait):
                 use_heal = 1
                 display.message('>>> Using Heal <<<')
+
+            if resp.get('game_over', False):
+                display.message('Game Over! Leaving boss game...')
+                break
 
             time.sleep(report_damage_wait)
 
