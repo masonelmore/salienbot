@@ -33,6 +33,9 @@ class Bot():
             display.player_info(self.player)
 
             planets = self.potential_planets()
+            if len(planets) == 0:
+                display.message('No more planets to conquer. Exiting...')
+                break
             display.planets(planets)
             self.planet = self.best_planet(planets)
             self.zone = self.planet.best_zone()
