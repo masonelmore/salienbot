@@ -208,11 +208,13 @@ class Bot():
 
 
 class Planet():
-    def __init__(self, planet_id, active, captured, progress, boss_position, zones):
+    def __init__(self, planet_id, active, captured, progress, name, current_players, boss_position, zones):
         self.id = planet_id
         self.active = active
         self.captured = captured
         self.progress = progress
+        self.name = name
+        self.current_players = current_players
         self.boss_position = boss_position
         self._zones = self._group_zones(zones)
 
@@ -222,6 +224,8 @@ class Planet():
         state = planet_json.get('state')
         active = state.get('active')
         captured = state.get('captured')
+        name = state.get('name')
+        current_players = int(state.get('current_players', 0))
         boss_position = state.get('boss_zone_position', -1)
 
         zones = []
@@ -233,7 +237,7 @@ class Planet():
         max_progress = len(zones)
         progress = total_progress / max_progress
 
-        planet = cls(planet_id, active, captured, progress, boss_position, zones)
+        planet = cls(planet_id, active, captured, progress, name, current_players, boss_position, zones)
         return planet
 
     @staticmethod

@@ -35,14 +35,14 @@ def player_info(player):
 
 def planets(planets):
     logger.info('--- Active Planets ---')
-    logger.info('Planet  Progress  Boss  High  Medium  Low')
+    logger.info('Planet  Progress  Boss  High  Medium  Low    Players  Name')
     for planet in planets:
         # TODO: Better constants management?
         nboss = len(planet.zones(4))
         nhigh = len(planet.zones(3))
         nmedium = len(planet.zones(2))
         nlow = len(planet.zones(1))
-        logger.info(f'{planet.id:5}  {planet.progress*100:8.2f}%  {nboss:4}  {nhigh:4}  {nmedium:6}  {nlow:3}')
+        logger.info(f'{planet.id:5}  {planet.progress*100:8.2f}%  {nboss:4}  {nhigh:4}  {nmedium:6}  {nlow:3}  {planet.current_players:9,d}  {planet.name}')
 
 
 def join_zone_status(player, planet, zone):

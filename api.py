@@ -84,6 +84,7 @@ class Client():
         url = Client._build_url(_METHOD_GETPLANETS)
         params = {
             'active_only': active_only,
+            'language': 'english',
         }
         json, eresult = self._get(url, params)
         planets = json.get('planets', [])
@@ -93,6 +94,7 @@ class Client():
         url = Client._build_url(_METHOD_GETPLANET)
         params = {
             'id': planet_id,
+            'language': 'english',
         }
         json, eresult = self._get(url, params)
         planet = json.get('planets')[0]
